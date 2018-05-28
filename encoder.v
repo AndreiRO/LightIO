@@ -22,7 +22,8 @@ module encoder(input wire clock,
 			   output reg led,
 			   output reg done); 
 
-	/* counts intervals for D-PPM (Differential Pulse Position Modulation) */	reg [`COUNTER_SIZE - 1:0]	counter;
+	/* counts intervals for D-PPM (Differential Pulse Position Modulation) */
+	reg [`COUNTER_SIZE - 1:0]	counter;
 	
 	/* represents the current bit to send */
 	reg [`COUNTER_SIZE:0]		current_bit;
