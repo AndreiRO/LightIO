@@ -38,58 +38,56 @@ module decoder(input wire clock,
 		irq			= 0;
 	end
 	
-	
-	always @(posedge reset)
-	begin
-		data		<= 0;
-		current_bit	<= 0;
-		counter		<= 0;
-		started		<= 0;
-		irq			<= 0;
-	end
-	
 	always @(posedge clock)
 	begin
-		if (signal == 1)
+		if (reset == 1)
 		begin
-			if (started == 0)
+			data		<= 0;
+			current_bit	<= 0;
+			counter		<= 0;
+			started		<= 0;
+			irq			<= 0;
+		end else
+		begin
+			if (signal == 1)
 			begin
-				/* a new package is comming */
-				started <= 1;
-				irq <= 0;
-				current_bit <= 0;
-				counter <= 0;
-			end else
-			begin
-
-				/* determine data bit based on intervals passed */
-				if (counter >= `INTERVAL_HIGH - 1)
+				if (started == 0)
 				begin
-					data[current_bit] <= 1;
-				end else if (counter >= `INTERVAL_LOW - 1)
-				begin
-					data[current_bit] <= 0;
-				end
-				
-				counter <= 0;
-				
-				/* move to next bit */
-				if (current_bit == `PACKET_SIZE - 1)
-				begin
-					irq <= 1;
+					/* a new package is comming */
+					started <= 1;
+					irq <= 0;
 					current_bit <= 0;
-					started <= 0;
+					counter <= 0;
 				end else
 				begin
-					current_bit <= current_bit + 1;
-				end				
+
+					/* determine data bit based on intervals passed */
+					if (counter >= `INTERVAL_HIGH - 1)
+					begin
+						data[current_bit] <= 1;
+					end else if (counter >= `INTERVAL_LOW - 1)
+					begin
+						data[current_bit] <= 0;
+					end
+					
+					counter <= 0;
+					
+					/* move to next bit */
+					if (current_bit == `PACKET_SIZE - 1)
+					begin
+						irq <= 1;
+						current_bit <= 0;
+						started <= 0;
+					end else
+					begin
+						current_bit <= current_bit + 1'b1;
+					end				
+				end
+			end else if (started == 1)
+			begin
+				counter <= counter + 1'b1;
 			end
-		end else if (started == 1)
-		begin
-			counter <= counter + 1;
 		end
-		
-	
 		
 	end
 	

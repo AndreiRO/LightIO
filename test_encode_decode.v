@@ -2,9 +2,11 @@
 
 `include "definitions.v"
 
-module test_encode_decode;
+module test_encode_decode(output wire t);
 	reg clock;
 	reg reset;
+	
+	assign t = 0;
 	
 	reg [`PACKET_SIZE - 1:0] data_in;
 	wire [`PACKET_SIZE - 1:0] data_out;
@@ -43,6 +45,11 @@ module test_encode_decode;
 	end
 	
 	always
+	begin
+		#80 reset = 1;
+		#3;
+		data_in = 8'b1111_0100;
+		reset = 0;
 		#80 $finish;
-
+	end
 endmodule

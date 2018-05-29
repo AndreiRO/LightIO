@@ -27,13 +27,8 @@ module encoder(input wire clock,
 	
 	/* represents the current bit to send */
 	reg [`COUNTER_SIZE:0]		current_bit;
- 
-	/* TODO: improve design
-		currently to_signal_done is set on negedge
-		and on posedge done is set correspondingly
-	*/
-	reg							to_signal_done;
- 
+
+
 	initial
 	begin
 		/* reset internal logic */
@@ -41,54 +36,49 @@ module encoder(input wire clock,
 		counter			= 0;
 		done			= 0;
 		current_bit		= 0;
-		to_signal_done	= 0;
 	end
-	
-	always @(posedge reset)
-	begin
-		/* reset internal logic */
-		led				<= `LED_ON;
-		counter			<= 0;
-		done			<= 0;
-		current_bit		<= 0;
-		done 			<= 0;
-		to_signal_done	<= 0;
-	end
-	
+
 	always @(posedge clock)
 	begin
-		/* output is almost always in OFF state */
-		led <= `LED_OFF;
-		if (to_signal_done == 0)
+
+		if (reset == 1)
 		begin
-			counter <= counter + 1;
+			/* reset internal logic */
+			led				<= `LED_ON;
+			counter			<= 0;
+			done			<= 0;
+			current_bit		<= 0;
+			done 			<= 0;
+		end else
+		begin
+			/* output is almost always in OFF state */
+			led <= `LED_OFF;
 
-			if (data[current_bit] == 0 &&
-			   counter == `INTERVAL_LOW)
+			if (current_bit < `PACKET_SIZE)
 			begin
-				led		<= `LED_ON;
-				counter	<= 0;
-				current_bit <= current_bit + 1;
-			end
-			else if (data[current_bit] == 1 &&
-					counter == `INTERVAL_HIGH)
-			begin
-				led		<= `LED_ON;
-				counter	<= 0;
-				current_bit <= current_bit + 1;
-			end
+				counter <= counter + 1'b1;
+
+				if (data[current_bit] == 0 &&
+				   counter == `INTERVAL_LOW)
+				begin
+					led		<= `LED_ON;
+					counter	<= 0;
+					current_bit <= current_bit + 1'b1;
+					
+				end
+				else if (data[current_bit] == 1 &&
+						counter == `INTERVAL_HIGH)
+				begin
+					led		<= `LED_ON;
+					counter	<= 0;
+					current_bit <= current_bit + 1'b1;
+				end				
+			end else
+				done <= 1;
+
 		end
-		
-		if (to_signal_done == 1)
-			done <= 1;
+	end
+	
 
-	end
-	
-	always @(negedge clock)
-	begin
-		if (current_bit == `PACKET_SIZE)
-			to_signal_done <= 1;
-	end
-	
 endmodule
 	
