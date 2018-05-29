@@ -70,7 +70,7 @@ module decoder(input wire clock,
 						data[current_bit] <= 0;
 					end
 					
-					counter <= 0;
+					
 					
 					/* move to next bit */
 					if (current_bit == `PACKET_SIZE - 1)
@@ -78,11 +78,11 @@ module decoder(input wire clock,
 						irq <= 1;
 						current_bit <= 0;
 						started <= 0;
-					end else
+					end else if (counter != 0)
 					begin
 						current_bit <= current_bit + 1'b1;
 					end
-							
+					counter <= 0;
 				end
 			end else if (started == 1)
 			begin
