@@ -60,7 +60,7 @@ module decoder(input wire clock,
 					counter <= 0;
 				end else
 				begin
-
+					
 					/* determine data bit based on intervals passed */
 					if (counter >= `INTERVAL_HIGH - 1)
 					begin
@@ -81,7 +81,8 @@ module decoder(input wire clock,
 					end else
 					begin
 						current_bit <= current_bit + 1'b1;
-					end				
+					end
+							
 				end
 			end else if (started == 1)
 			begin

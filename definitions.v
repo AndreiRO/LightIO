@@ -1,5 +1,7 @@
 `define PACKET_SIZE		8
-`define COUNTER_SIZE	3
+`define FRAME_SIZE		12
+
+`define COUNTER_SIZE	4
 `define LED_OFF			0
 `define LED_ON			1
 

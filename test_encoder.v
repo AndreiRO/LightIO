@@ -7,22 +7,28 @@ module test_encoder;
 	reg clock;
 	reg reset;
 	reg [`PACKET_SIZE - 1:0] data;
+	reg enable;
 
 	wire led;
 	wire done;
+	
 	
 	encoder encoder(
 		.clock(clock),
 		.reset(reset),
 		.data(data),
 		.led(led),
-		.done(done)
+		.done(done),
+		.enable(enable)
 	);
 
 	initial
 	begin
 		clock	= 0;
-		reset	= 0;
+		reset	= 1;
+
+		enable = 1;
+		#2 reset = 0;		
 	end
 	
 	always

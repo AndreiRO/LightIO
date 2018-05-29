@@ -18,8 +18,9 @@
 
 module encoder(input wire clock,
 			   input wire reset,
+			   input wire enable,
 			   input wire [`PACKET_SIZE - 1:0] data, 
-			   output reg led,
+			   output wire led,
 			   output reg done); 
 
 	/* counts intervals for D-PPM (Differential Pulse Position Modulation) */
@@ -28,11 +29,14 @@ module encoder(input wire clock,
 	/* represents the current bit to send */
 	reg [`COUNTER_SIZE:0]		current_bit;
 
+	reg							_led;
+
+	assign led = (enable == 1) ? _led : 1'b0;
 
 	initial
 	begin
 		/* reset internal logic */
-		led				= `LED_ON;
+		_led			= `LED_OFF;
 		counter			= 0;
 		done			= 0;
 		current_bit		= 0;
@@ -44,7 +48,7 @@ module encoder(input wire clock,
 		if (reset == 1)
 		begin
 			/* reset internal logic */
-			led				<= `LED_ON;
+			_led			<= `LED_ON;
 			counter			<= 0;
 			done			<= 0;
 			current_bit		<= 0;
@@ -52,7 +56,7 @@ module encoder(input wire clock,
 		end else
 		begin
 			/* output is almost always in OFF state */
-			led <= `LED_OFF;
+			_led <= `LED_OFF;
 
 			if (current_bit < `PACKET_SIZE)
 			begin
@@ -61,7 +65,7 @@ module encoder(input wire clock,
 				if (data[current_bit] == 0 &&
 				   counter == `INTERVAL_LOW)
 				begin
-					led		<= `LED_ON;
+					_led	<= `LED_ON;
 					counter	<= 0;
 					current_bit <= current_bit + 1'b1;
 					
@@ -69,7 +73,7 @@ module encoder(input wire clock,
 				else if (data[current_bit] == 1 &&
 						counter == `INTERVAL_HIGH)
 				begin
-					led		<= `LED_ON;
+					_led	<= `LED_ON;
 					counter	<= 0;
 					current_bit <= current_bit + 1'b1;
 				end				
