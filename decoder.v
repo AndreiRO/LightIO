@@ -16,7 +16,7 @@
 module decoder(input wire clock,
 			   input wire reset,
 			   input wire signal,
-			   output reg [`PACKET_SIZE - 1:0] data,
+			   output reg [`FRAME_SIZE - 1:0] data,
 			   output reg irq);
 
 
@@ -73,7 +73,7 @@ module decoder(input wire clock,
 					
 					
 					/* move to next bit */
-					if (current_bit == `PACKET_SIZE - 1)
+					if (current_bit == `FRAME_SIZE - 1)
 					begin
 						irq <= 1;
 						current_bit <= 0;
@@ -86,7 +86,15 @@ module decoder(input wire clock,
 				end
 			end else if (started == 1)
 			begin
-				counter <= counter + 1'b1;
+				if (counter > `INTERVAL_HIGH)
+				begin
+					data		<= 0;
+					current_bit	<= 0;
+					counter		<= 0;
+					started		<= 0;
+					irq			<= 0;
+				end else
+					counter <= counter + 1'b1;
 			end
 		end
 		

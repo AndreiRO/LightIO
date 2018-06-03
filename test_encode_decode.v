@@ -9,19 +9,19 @@ module test_encode_decode(output wire t);
 	
 	assign t = 0;
 	
-	reg [`PACKET_SIZE - 1:0] data_in;
-	wire [`PACKET_SIZE - 1:0] data_out;
+	reg [`FRAME_SIZE - 1:0] data_in;
+	wire [`FRAME_SIZE - 1:0] data_out;
 
 	wire led;
-	wire done;
-	wire irq;
+	wire irq_tx;
+	wire irq_rx;
 	
 	encoder encoder(
 		.clock(clock),
 		.reset(reset),
 		.data(data_in),
 		.led(led),
-		.done(done),
+		.irq(irq_tx),
 		.enable(enable)
 	);
 	
@@ -29,14 +29,14 @@ module test_encode_decode(output wire t);
 		.clock(clock),
 		.reset(reset),
 		.data(data_out),
-		.irq(irq),
+		.irq(irq_rx),
 		.signal(led)
 	);
 	
 	initial
 	begin
 		clock = 0;
-		data_in = 8'b1011_0110;
+		data_in = 16'b1111_0100_1011_0110;
 		
 		enable = 1;
 		reset = 1;
@@ -50,12 +50,13 @@ module test_encode_decode(output wire t);
 	
 	always
 	begin
-		wait(done == 1);
+		wait(irq_rx == 1 && irq_tx == 1);
 		reset = 1;
-		#3;
-		data_in = 8'b1111_0100;
+		#4;
+		data_in = 16'b0100_1111_1111_0100;
 		reset = 0;
-		wait(done == 1);
+		#5;
+		wait(irq_rx == 1 && irq_tx == 1);
 		#2;
 		$finish;
 	end

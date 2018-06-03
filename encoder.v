@@ -12,16 +12,16 @@
 		- reset: module reset (sets internal counters to 0
 		- data: the packet to be sent
 		- led: led output value
-		- done: notification signaling encoding done
+		- irq: notification signaling encoding done
 
 */
 
 module encoder(input wire clock,
 			   input wire reset,
 			   input wire enable,
-			   input wire [`PACKET_SIZE - 1:0] data, 
+			   input wire [`FRAME_SIZE - 1:0] data, 
 			   output wire led,
-			   output reg done); 
+			   output reg irq); 
 
 	/* counts intervals for D-PPM (Differential Pulse Position Modulation) */
 	reg [`COUNTER_SIZE - 1:0]	counter;
@@ -38,7 +38,7 @@ module encoder(input wire clock,
 		/* reset internal logic */
 		_led			= `LED_OFF;
 		counter			= 0;
-		done			= 0;
+		irq			= 0;
 		current_bit		= 0;
 	end
 
@@ -50,15 +50,14 @@ module encoder(input wire clock,
 			/* reset internal logic */
 			_led			<= `LED_ON;
 			counter			<= 0;
-			done			<= 0;
 			current_bit		<= 0;
-			done 			<= 0;
+			irq 			<= 0;
 		end else
 		begin
 			/* output is almost always in OFF state */
 			_led <= `LED_OFF;
 
-			if (current_bit < `PACKET_SIZE)
+			if (current_bit < `FRAME_SIZE)
 			begin
 				counter <= counter + 1'b1;
 
@@ -78,7 +77,7 @@ module encoder(input wire clock,
 					current_bit <= current_bit + 1'b1;
 				end				
 			end else
-				done <= 1;
+				irq <= 1;
 
 		end
 	end

@@ -22,8 +22,8 @@ module transceiver(
 	input wire reset,
 	input wire tx_enable,
 	input wire signal,
-	input wire [`PACKET_SIZE - 1:0] data_in,
-	output wire [`PACKET_SIZE - 1:0] data_out,
+	input wire [`FRAME_SIZE - 1:0] data_in,
+	output wire [`FRAME_SIZE - 1:0] data_out,
 	output wire led,
 	output wire irq_tx,
 	output wire irq_rx);
@@ -33,7 +33,7 @@ module transceiver(
 		.clock(clock),
 		.reset(reset),
 		.data(data_in),
-		.done(irq_tx),
+		.irq(irq_tx),
 		.enable(tx_enable),
 		.led(led));
 		

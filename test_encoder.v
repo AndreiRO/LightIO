@@ -6,11 +6,11 @@ module test_encoder;
 	
 	reg clock;
 	reg reset;
-	reg [`PACKET_SIZE - 1:0] data;
+	reg [`FRAME_SIZE - 1:0] data;
 	reg enable;
 
 	wire led;
-	wire done;
+	wire irq;
 	
 	
 	encoder encoder(
@@ -18,7 +18,7 @@ module test_encoder;
 		.reset(reset),
 		.data(data),
 		.led(led),
-		.done(done),
+		.irq(irq),
 		.enable(enable)
 	);
 
@@ -33,8 +33,10 @@ module test_encoder;
 	
 	always
 	begin
-		data = 8'b1011_0110;
-		#74 $finish;
+		data = 16'b0100_1111_1011_0110;
+		wait(irq == 1);
+		#3 $finish;
+		
 	end
 	
 	always
