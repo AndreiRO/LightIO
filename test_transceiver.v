@@ -17,11 +17,11 @@ module test_transceiver;
 	wire irq_tx_1, irq_rx_1;
 	wire irq_tx_2, irq_rx_2;
 	
-	reg [`PACKET_SIZE - 1: 0] data_in_1;
-	reg [`PACKET_SIZE - 1: 0] data_in_2;
+	reg [`FRAME_SIZE - 1: 0] data_in_1;
+	reg [`FRAME_SIZE - 1: 0] data_in_2;
 	
-	wire [`PACKET_SIZE - 1: 0] data_out_1;
-	wire [`PACKET_SIZE - 1: 0] data_out_2;
+	wire [`FRAME_SIZE - 1: 0] data_out_1;
+	wire [`FRAME_SIZE - 1: 0] data_out_2;
 	
 	transceiver t1(
 		.clock(clock),
@@ -56,43 +56,26 @@ module test_transceiver;
 	
 	always
 	begin
+		reset = 1;
+		#4 reset = 0;
+
+		data_in_1 = 16'b0101_0000_0100_0101; // 50 'P' 45 'E'
+		tx_en_1 = 1;
+		wait(irq_tx_1 == 1 && irq_rx_2 == 1);
+		tx_en_1 = 0;
 		#4;
 		
-		data_in_1 = 8'b0101_0000; // 'P'
-		reset = 1;
-		tx_en_1 = 1;
-		#3 reset = 0;
-		wait(irq_tx_1 == 1 && irq_rx_2 == 1);
-		tx_en_1 = 0;
-		
-		data_in_2 = 8'b0100_0101; // 'E'
-		reset = 1;
+		data_in_2 = 16'b0101_0100_0101_0010; // 54 'T' 52 'R'
 		tx_en_2 = 1;
-		#3 reset = 0;
 		wait(irq_tx_2 == 1 && irq_rx_1 == 1);
 		tx_en_2 = 0;
-		
-		data_in_1 = 8'b0101_0100; // 'T'
-		reset = 1;
-		tx_en_1 = 1;
-		#3 reset = 0;
-		wait(irq_tx_1 == 1 && irq_rx_2 == 1);
-		tx_en_1 = 0;
-		
-		data_in_2 = 8'b0101_0010; // 'R'
-		reset = 1;
-		tx_en_2 = 1;
-		#3 reset = 0;
-		wait(irq_tx_2 == 1 && irq_rx_1 == 1);
-		tx_en_2 = 0;
-		
-		data_in_1 = 8'b0100_0001; // 'A'
-		reset = 1;
-		tx_en_1 = 1;
-		#3 reset = 0;
-		wait(irq_tx_1 == 1 && irq_rx_2 == 1);
-		tx_en_1 = 0;
+		#4;
 	
+		data_in_1 = 16'b0100_0001_0010_0001; // 41 'A' 21 '!'
+		tx_en_1 = 1;
+		wait(irq_tx_1 == 1 && irq_rx_2 == 1);
+		tx_en_1 = 0;
+		#4;
 		$finish;
 	end
 	

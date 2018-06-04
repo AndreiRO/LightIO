@@ -1,5 +1,7 @@
+`define MESSAGE_SIZE	8
 `define PACKET_SIZE		11
 `define FRAME_SIZE		16
+
 
 `define COUNTER_SIZE	4
 `define LED_OFF			0

@@ -34,7 +34,7 @@ module transceiver(
 		.reset(reset),
 		.data(data_in),
 		.irq(irq_tx),
-		.enable(tx_enable),
+		.start(tx_enable),
 		.led(led));
 		
 	decoder decoder(

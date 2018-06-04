@@ -7,7 +7,7 @@ module test_encoder;
 	reg clock;
 	reg reset;
 	reg [`FRAME_SIZE - 1:0] data;
-	reg enable;
+	reg start;
 
 	wire led;
 	wire irq;
@@ -19,22 +19,21 @@ module test_encoder;
 		.data(data),
 		.led(led),
 		.irq(irq),
-		.enable(enable)
+		.start(start)
 	);
 
 	initial
 	begin
 		clock	= 0;
-		reset	= 1;
-
-		enable = 1;
-		#2 reset = 0;		
 	end
 	
 	always
 	begin
+		
 		data = 16'b0100_1111_1011_0110;
+		start = 1;
 		wait(irq == 1);
+		start = 0;
 		#3 $finish;
 		
 	end

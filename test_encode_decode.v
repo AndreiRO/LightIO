@@ -5,7 +5,7 @@
 module test_encode_decode(output wire t);
 	reg clock;
 	reg reset;
-	reg enable;
+	reg start;
 	
 	assign t = 0;
 	
@@ -22,7 +22,7 @@ module test_encode_decode(output wire t);
 		.data(data_in),
 		.led(led),
 		.irq(irq_tx),
-		.enable(enable)
+		.start(start)
 	);
 	
 	decoder decoder(
@@ -37,10 +37,7 @@ module test_encode_decode(output wire t);
 	begin
 		clock = 0;
 		data_in = 16'b1111_0100_1011_0110;
-		
-		enable = 1;
-		reset = 1;
-		#2 reset = 0;
+		start = 1;
 	end
 	
 	always
@@ -51,11 +48,10 @@ module test_encode_decode(output wire t);
 	always
 	begin
 		wait(irq_rx == 1 && irq_tx == 1);
-		reset = 1;
+		start = 0;
 		#4;
 		data_in = 16'b0100_1111_1111_0100;
-		reset = 0;
-		#5;
+		start = 1;
 		wait(irq_rx == 1 && irq_tx == 1);
 		#2;
 		$finish;

@@ -21,11 +21,11 @@ module test_transceiver_phased;
 	wire irq_tx_1, irq_rx_1;
 	wire irq_tx_2, irq_rx_2;
 	
-	reg [`PACKET_SIZE - 1: 0] data_in_1;
-	reg [`PACKET_SIZE - 1: 0] data_in_2;
+	reg [`FRAME_SIZE - 1: 0] data_in_1;
+	reg [`FRAME_SIZE - 1: 0] data_in_2;
 	
-	wire [`PACKET_SIZE - 1: 0] data_out_1;
-	wire [`PACKET_SIZE - 1: 0] data_out_2;
+	wire [`FRAME_SIZE - 1: 0] data_out_1;
+	wire [`FRAME_SIZE - 1: 0] data_out_2;
 	
 	transceiver t1(
 		.clock(clock_1),
@@ -62,20 +62,16 @@ module test_transceiver_phased;
 	always
 	begin
 		clock_1 = !clock_1;
-		#0.75 clock_2 = !clock_2;
-		#0.25;
+		#0.25 clock_2 = !clock_2;
+		#0.75;
 	end
 	
 	always
 	begin
-		
-		data_in_1 = 8'b1001_0110;
+		data_in_1 = 16'b0101_0000_0100_0101;
 		tx_en_1 = 1;
-		reset = 1;
-		#2;
-		reset = 0;
-		
 		wait(irq_tx_1 == 1 && irq_rx_2 == 1);
+		tx_en_1 = 0;
 		#2 $finish;
 	end
 	
