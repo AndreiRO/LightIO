@@ -7,31 +7,47 @@ module test_simple_petra;
 	
 	reg clock;
 	reg reset;
-	reg send_message;
-	reg [`MESSAGE_SIZE - 1:0] data_in;
-	wire [`MESSAGE_SIZE - 1:0] data_out;
 	
-	wire irq_tx;
-	wire irq_rx;
-	wire signal;
-	wire led;
+	reg send_message_1;
+	reg send_message_2;
 	
-	arbiter arbiter();
-	petra petra(clock, reset, send_message, data_in, data_out,
-				irq_tx, irq_rx, signal, led);
-				
+	reg [`MESSAGE_SIZE - 1:0] data_in_1;
+	wire [`MESSAGE_SIZE - 1:0] data_out_1;
+	
+	reg [`MESSAGE_SIZE - 1:0] data_in_2;
+	wire [`MESSAGE_SIZE - 1:0] data_out_2;
+	
+	wire irq_tx_1;
+	wire irq_rx_1;
+	
+	wire irq_tx_2;
+	wire irq_rx_2;
+
+	
+	wire led_2;
+	wire led_1;
+
+	petra petra1(clock, reset, send_message_1, data_in_1, data_out_1,
+				irq_tx_1, irq_rx_1, led_2, led_1);
+	
+	petra petra2(clock, reset, send_message_2, data_in_2, data_out_2,
+				irq_tx_2, irq_rx_2, led_1, led_2);
+	
 	initial
 	begin
 		clock = 0;
 		reset = 0;
-		send_message = 0;
-		data_in = 8'b0101_0000;
+		send_message_1 = 0;
+		data_in_1 = 8'b0101_0000;
 	end
 	
 	always
 	begin
-		send_message = 0;
-		#100 $finish;
+		reset = 1;
+		#4 reset = 0;
+		send_message_1 = 1;
+		wait (irq_tx_1 == 1 && irq_rx_2 == 1);
+		#4 $finish;
 	end
 		
 	

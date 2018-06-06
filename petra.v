@@ -64,7 +64,8 @@
 
 
 `define RX_INITIAL 0
-`define RX_WAIT_ACK 1
+`define RX_RECEIVED_MESSAGE 1
+`define RX_WAIT_ACK 2
 
 `define RX_ACK 0
 `define RX_NACK 1
@@ -179,6 +180,8 @@ module petra(
 						   .reset(tx_timer_reset),
 						   .irq(tx_timeout));
 	
+	reg [1:0] debug;
+	
 	initial
 	begin
 		tx_state = `TX_INITIAL;
@@ -194,15 +197,31 @@ module petra(
 		rx_seq = 0;
 		
 		rx_notify_ack = 0;
+
+		irq_tx = 0;
+		irq_rx = 0;
 	end
 	
 	always @(posedge clock)
 	begin
 		if (reset)
 		begin
-			tx_state <= `TX_INITIAL;
-			rx_state <= `RX_INITIAL;
+			tx_state = `TX_INITIAL;
+			rx_state = `RX_INITIAL;
+		
+			current_packet = 0;
+			current_type = 0;
 			
+			arbiter_message = 0;
+			arbiter_ack = 0;
+			
+			tx_seq = 0;
+			rx_seq = 0;
+			
+			rx_notify_ack = 0;
+
+			irq_tx = 0;
+			irq_rx = 0;
 		end else
 		begin
 			
@@ -212,11 +231,17 @@ module petra(
 					begin
 						/* transition to TX_ECC_ENCODE */
 						if (rx_ack == `RX_ACK)
+						begin
+							current_packet <= {rx_seq, `MSG_ACK, 8'b0000_0000};
 							current_type <= `MSG_ACK;
+						end
 						else if (rx_ack == `RX_NACK)
+						begin
+							current_packet <= {rx_seq, `MSG_NACK, 8'b0000_0000};
 							current_type <= `MSG_NACK;
+						end
 						tx_state <= `TX_ECC_ENCODE;
-						current_packet <= {rx_seq, current_type, 8'b0000_0000};
+						
 					end else if (send_message)
 					begin
 						/* transition to TX_WAIT_ARBITER */
@@ -242,7 +267,6 @@ module petra(
 				end
 
 				`TX_TYPE_SELECT: begin
-
 					if (current_type == `MSG_NORMAL)
 						tx_state <= `TX_TRANSFER_NORMAL;
 					else if (current_type == `MSG_ACK || current_type == `MSG_NACK)
@@ -293,33 +317,38 @@ module petra(
 					begin
 						if (rx_ecc_irq)
 						begin
-							if (rx_correct)
-							begin
-								if (received_packet[14:13] == `MSG_NORMAL)
-								begin
-									rx_ack <= `RX_ACK;
-									tx_sent_ack <= 0;
-									rx_state <= `RX_WAIT_ACK;
-									arbiter_ack <= 1;
-								end else if (received_packet[11:10] == `MSG_ACK ||
-											 received_packet[11:10] == `MSG_NACK)
-								begin
-									rx_notify_ack <= received_packet[11:10];
-									if (received_packet[11:10] == `MSG_ACK)
-										rx_ack <= `RX_ACK;
-									else
-										rx_ack <= `RX_NACK;
-
-									tx_sent_ack <= 0;
-									rx_state <= `RX_INITIAL;
-								end
-							end else
-							begin
-								arbiter_ack <= 1;
-								rx_ack <= `MSG_NACK;
-								rx_state <= `RX_INITIAL;
-							end
+							rx_state <= `RX_RECEIVED_MESSAGE;
 						end
+					end
+				end
+				`RX_RECEIVED_MESSAGE: begin
+					if (rx_correct)
+					begin
+						debug <= received_packet[9:8];
+						if (received_packet[9:8] == `MSG_NORMAL &&
+							received_packet[10] == rx_seq)
+						begin
+							rx_ack <= `RX_ACK;
+							tx_sent_ack <= 0;
+							rx_state <= `RX_WAIT_ACK;
+							arbiter_ack <= 1;			
+						end else if (received_packet[9:8] == `MSG_NORMAL &&
+									  received_packet[10] != rx_seq)
+						begin
+							rx_ack <= `RX_NACK;
+							rx_state <= `RX_INITIAL;
+							arbiter_ack <= 1;
+						end else if (received_packet[9:8] == `MSG_ACK ||
+									 received_packet[9:8] == `MSG_NACK)
+						begin
+							 rx_notify_ack <= received_packet[9:8];
+							 rx_state <= `RX_INITIAL;
+						end
+					end else
+					begin
+						arbiter_ack <= 1;
+						rx_ack <= `RX_NACK;
+						rx_state <= `RX_INITIAL;
 					end
 				end
 				

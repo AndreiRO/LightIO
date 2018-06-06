@@ -33,13 +33,14 @@ module ecc(input wire [`PACKET_SIZE - 1:0] packet,
 	initial
 	begin
 		irq = 1'b0;
+		correct = 0;
 	end
 	
 	always @(packet, frame)
 	begin
 		irq = 1'b0;
-		correct = 1'bz;
-		
+		correct = 0;
+
 		if (operation == `OP_ENCODE)
 		begin
 			/* unfold packet */

@@ -14,12 +14,12 @@
 
 */
 
-module message_timer #(parameter divider = 64)(
+module message_timer #(parameter divider = 256)(
 	input wire clock,
 	input wire reset,
 	output reg irq);
 	
-	reg [6:0] counter;
+	reg [8:0] counter;
 	
 	initial
 		counter = 0;

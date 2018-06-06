@@ -28,25 +28,36 @@ module decoder(input wire clock,
 
 	/* whether a first pulse has already been received */
 	reg							started;
+	
+	reg [`FRAME_SIZE - 1:0] temp_data;
+	
+	reg finished;
 
 	initial
 	begin
 		data		= 0;
+		temp_data	= 0;
 		current_bit	= 0;
 		counter		= 0;
 		started		= 0;
 		irq			= 0;
+		finished	= 0;
 	end
 	
 	always @(posedge clock)
 	begin
+		if (finished)
+			data <= temp_data;
+
 		if (reset == 1)
 		begin
 			data		<= 0;
+			temp_data	<= 0;
 			current_bit	<= 0;
 			counter		<= 0;
 			started		<= 0;
 			irq			<= 0;
+			finished	<= 0;
 		end else
 		begin
 			if (signal == 1)
@@ -64,10 +75,10 @@ module decoder(input wire clock,
 					/* determine data bit based on intervals passed */
 					if (counter >= `INTERVAL_HIGH - 1)
 					begin
-						data[current_bit] <= 1;
+						temp_data[current_bit] <= 1;
 					end else if (counter >= `INTERVAL_LOW - 1)
 					begin
-						data[current_bit] <= 0;
+						temp_data[current_bit] <= 0;
 					end
 					
 					
@@ -75,6 +86,7 @@ module decoder(input wire clock,
 					/* move to next bit */
 					if (current_bit == `FRAME_SIZE - 1)
 					begin
+						finished <= 1;
 						irq <= 1;
 						current_bit <= 0;
 						started <= 0;
