@@ -10,7 +10,7 @@
 	
 		- clock: system clock
 		- reset: module reset (sets internal counters to 0
-		- tx_enable: start sending a packet
+		- send_message: start sending a packet
 		- signal: values from PIN
 		- data_in: the packet to be sent
 		- data_out: packet received
@@ -64,13 +64,15 @@
 
 
 `define RX_INITIAL 0
+`define RX_WAIT_ACK 1
+
 `define RX_ACK 0
 `define RX_NACK 1
 
 module petra(
 	input wire clock,
 	input wire reset,
-
+	
 	input wire send_message,
 	
 	input wire [`MESSAGE_SIZE - 1:0] data_in,
@@ -98,10 +100,16 @@ module petra(
 	reg arbiter_message; /* trigger arbiter for ACK */
 	reg arbiter_ack; /* trigger arbiter for (N)ACK */
 	
-	reg [`PACKET_SIZE - 1:0] rx_ack; /* current ACK to send */
+	reg tx_sent_ack; /* the TX unit notifies the RX unit that it sent an ACK */
+	
+	reg [1:0] rx_ack; /* current ACK to send */
 	reg [`MESSAGE_SIZE - 1:0] current_message; /* current TX message */
 	reg [`PACKET_SIZE - 1:0] current_packet; /* current TX packet */
 	wire [`FRAME_SIZE - 1:0] current_frame; /* current TX frame */
+	
+	wire [`FRAME_SIZE - 1:0] received_frame; /* buffer for ECC Decode */
+	wire [`PACKET_SIZE - 1:0] received_packet; /* decoded RX message */
+	wire rx_correct; /* whether decoding process yielded a correct message */
 
 	/* 00 - normal, 01 - ACK, 10 - NACK, 11 - EXTENDED */
 	reg [1:0] current_type; /* current message type */
@@ -123,19 +131,31 @@ module petra(
 	
 	reg tx_timer_reset; /* reset tx timer, the timer notifies ACK wasn't received */
 	
+	wire [`FRAME_SIZE - 1:0] useless_frame;
+	assign useless_frame = 0;
+	wire [`PACKET_SIZE - 1:0] useless_packet;
+	assign useless_packet = 0;
+	
+	wire [`PACKET_SIZE - 1:0] useless_packet2;
+	wire [`FRAME_SIZE - 1:0] useless_frame2;
+	wire useless_wire;
+	
+	
 	ecc tx_ecc(.packet(current_packet),
-			   .frame(),
+			   .frame(useless_frame),
 			   .codeword(current_frame),
-			   .data(),
 			   .irq(tx_ecc_irq),
+			   .data(useless_packet2),
 			   .operation(tx_ecc_operation),
-			   .correct());
-	ecc rx_ecc(.packet(),
-			   .frame(),
-			   .codeword(),
-			   .data(),
-			   .irq(),
-			   .operation(rx_ecc_operation));
+			   .correct(useless_wire));
+
+	ecc rx_ecc(.packet(useless_packet),
+			   .frame(received_frame),
+			   .data(received_packet),
+			   .codeword(useless_frame2),
+			   .irq(rx_ecc_irq),
+			   .operation(rx_ecc_operation),
+			   .correct(rx_correct));
 	
 	transceiver transceiver(.clock(clock),
 							.reset(reset),
@@ -143,7 +163,7 @@ module petra(
 							.signal(signal),
 							.led(led),
 							.data_in(current_frame),
-							.data_out(),
+							.data_out(received_frame),
 							.irq_tx(transceiver_irq_tx),
 							.irq_rx(transceiver_irq_rx));
 	arbiter arbiter(.clock(clock),
@@ -172,6 +192,8 @@ module petra(
 		
 		tx_seq = 0;
 		rx_seq = 0;
+		
+		rx_notify_ack = 0;
 	end
 	
 	always @(posedge clock)
@@ -180,6 +202,7 @@ module petra(
 		begin
 			tx_state <= `TX_INITIAL;
 			rx_state <= `RX_INITIAL;
+			
 		end else
 		begin
 			
@@ -225,11 +248,7 @@ module petra(
 					else if (current_type == `MSG_ACK || current_type == `MSG_NACK)
 						tx_state <= `TX_TRANSFER_ACK;
 					tx_start_transfer <= 1;
-				end
-			
-			
-			
-			
+				end			
 				`TX_TRANSFER_NORMAL: begin
 					/* set timer */
 					tx_timer_reset <= 1;
@@ -244,11 +263,14 @@ module petra(
 					begin
 						tx_start_transfer <= 0;
 						tx_state <= `TX_TYPE_SELECT;
+						rx_notify_ack <= 0;
 					end else if (rx_notify_ack == `MSG_ACK)
 					begin
 						tx_seq <= !tx_seq;
 						arbiter_message <= 0;
 						tx_state <= `TX_INITIAL;
+						rx_notify_ack <= 0;
+						irq_tx <= 1;
 					end
 				end
 				
@@ -256,13 +278,62 @@ module petra(
 					if (transceiver_irq_tx)
 					begin
 						arbiter_ack <= 0;
+						tx_sent_ack <= 1;
 						tx_state <= `TX_INITIAL;
 					end
 				end
-			
 			endcase
 			
 			
+	
+			case (rx_state)
+				
+				`RX_INITIAL: begin
+					if (transceiver_irq_rx)
+					begin
+						if (rx_ecc_irq)
+						begin
+							if (rx_correct)
+							begin
+								if (received_packet[14:13] == `MSG_NORMAL)
+								begin
+									rx_ack <= `RX_ACK;
+									tx_sent_ack <= 0;
+									rx_state <= `RX_WAIT_ACK;
+									arbiter_ack <= 1;
+								end else if (received_packet[11:10] == `MSG_ACK ||
+											 received_packet[11:10] == `MSG_NACK)
+								begin
+									rx_notify_ack <= received_packet[11:10];
+									if (received_packet[11:10] == `MSG_ACK)
+										rx_ack <= `RX_ACK;
+									else
+										rx_ack <= `RX_NACK;
+
+									tx_sent_ack <= 0;
+									rx_state <= `RX_INITIAL;
+								end
+							end else
+							begin
+								arbiter_ack <= 1;
+								rx_ack <= `MSG_NACK;
+								rx_state <= `RX_INITIAL;
+							end
+						end
+					end
+				end
+				
+				`RX_WAIT_ACK: begin
+					if (tx_sent_ack)
+					begin
+						data_out <= received_packet[7:0];
+						irq_rx <= 1;
+						rx_state <= `RX_INITIAL;
+						rx_seq <= !rx_seq;
+					end
+				end
+				
+			endcase
 		end
 		
 	end
